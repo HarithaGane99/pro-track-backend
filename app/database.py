@@ -1,9 +1,9 @@
-from sqlalchemy import create_all, create_engine
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 
-SQLALCHEMY_DATABASE_URL = "mysql+mysqlconnector://root:Dreamcraft10@localhost/smart_inventory_db"
+SQLALCHEMY_DATABASE_URL = "mysql+mysqlconnector://root:DreamCraft10@localhost/smart_inventory_db"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
