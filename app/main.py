@@ -7,6 +7,7 @@ from . import models, schemas, database
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordRequestForm
 
 load_dotenv()
 
@@ -24,10 +25,32 @@ def hash_password(password: str):
     return pwd_context.hash(password)
 
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
 # Configuration
 SECRET_KEY = "your_very_secret_key_here" 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: int = payload.get("user_id")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user is None:
+        raise credentials_exception
+    return user
 
 @app.post("/register", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED)
 def register_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
@@ -47,21 +70,36 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(database.get_d
 
 
 @app.post("/login")
-def login(user_credentials: schemas.UserCreate, db: Session = Depends(database.get_db)):
+def login(user_credentials: OAuth2PasswordRequestForm = Depends(), 
+    db: Session = Depends(database.get_db)):
    
     user = db.query(models.User).filter(models.User.username == user_credentials.username).first()
     
-    if not user:
+    if not user or not verify_password(user_credentials.password, user.password_hash):
         raise HTTPException(status_code=403, detail="Invalid Credentials")
 
-    
-    if not verify_password(user_credentials.password, user.password_hash):
-        raise HTTPException(status_code=403, detail="Invalid Credentials")
-
-  
     access_token = create_access_token(data={"user_id": user.id, "role": user.role})
-
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+
+@app.post("/assets", response_model=schemas.AssetOut, status_code=status.HTTP_201_CREATED)
+def create_asset(
+    asset: schemas.AssetCreate, 
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    try:
+       
+        new_asset = models.Asset(**asset.model_dump()) 
+        db.add(new_asset)
+        db.commit()
+        db.refresh(new_asset)
+        return new_asset
+    except Exception as e:
+        db.rollback() 
+        print(f"Error: {e}") 
+        raise HTTPException(status_code=500, detail=str(e))
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -72,3 +110,5 @@ def create_access_token(data: dict):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+
