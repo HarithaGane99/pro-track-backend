@@ -100,6 +100,44 @@ def create_asset(
         db.rollback() 
         print(f"Error: {e}") 
         raise HTTPException(status_code=500, detail=str(e))
+    
+
+@app.put("/assets/{asset_id}/status", response_model=schemas.AssetOut)
+def update_asset_status(
+    asset_id: int, 
+    status_update: schemas.AssetStatusUpdate, 
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    asset = db.query(models.Asset).filter(models.Asset.id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    
+    asset.status = status_update.status
+    db.commit()
+    db.refresh(asset)
+    return asset    
+    
+
+
+
+@app.post("/maintenance", response_model=schemas.MaintenanceLogOut, status_code=status.HTTP_201_CREATED)
+def create_maintenance_log(
+    log: schemas.MaintenanceLogCreate, 
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    
+    asset = db.query(models.Asset).filter(models.Asset.id == log.asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    new_log = models.MaintenanceLog(**log.model_dump())
+    db.add(new_log)
+    db.commit()
+    db.refresh(new_log)
+    return new_log
+
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)

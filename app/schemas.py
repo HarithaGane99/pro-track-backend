@@ -31,3 +31,21 @@ class AssetOut(AssetBase):
     class Config:
         from_attributes = True
         
+class MaintenanceLogBase(BaseModel):
+    asset_id: int
+    service_date: date
+    technician_name: str
+    description: str
+    cost: float
+
+class MaintenanceLogCreate(MaintenanceLogBase):
+    pass
+
+class MaintenanceLogOut(MaintenanceLogBase):
+    id: int
+    class Config:
+        from_attributes = True
+
+
+class AssetStatusUpdate(BaseModel):
+    status: str 
