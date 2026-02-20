@@ -9,6 +9,7 @@ from jose import JWTError, jwt
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
+from typing import List
 
 load_dotenv()
 
@@ -90,6 +91,15 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(),
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+
+@app.get("/assets", response_model=List[schemas.AssetOut])
+def get_assets(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    
+    assets = db.query(models.Asset).all()
+    return assets
 
 @app.post("/assets", response_model=schemas.AssetOut, status_code=status.HTTP_201_CREATED)
 def create_asset(
