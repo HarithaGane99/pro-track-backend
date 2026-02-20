@@ -9,25 +9,26 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  e.preventDefault();
+  setError('');
 
-    const formData = new FormData();
-    formData.append('username', username);
-    formData.append('password', password);
+  const formData = new FormData();
+  formData.append('username', username);
+  formData.append('password', password);
 
-    try {
-      const response = await api.post('/login', formData);
-      const { access_token } = response.data;
-
-      localStorage.setItem('token', access_token);
-      
-
-      navigate('/dashboard');
-    } catch (err: any) {
-      setError('Invalid username or password. Please try again.');
-    }
-  };
+  try {
+    const response = await api.post('/login', formData);
+    console.log("Login Success:", response.data);
+    
+    const { access_token } = response.data;
+    localStorage.setItem('token', access_token);
+    navigate('/dashboard');
+  } catch (err: any) {
+    // ඇත්තම error එක console එකේ බලන්න
+    console.error("Login Error Details:", err.response?.data || err.message);
+    setError(err.response?.data?.detail || 'Invalid username or password');
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -41,7 +42,7 @@ const Login: React.FC = () => {
             <label className="block text-gray-700 text-sm font-bold mb-2">Username</label>
             <input
               type="text"
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500 text-black"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -52,7 +53,7 @@ const Login: React.FC = () => {
             <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
             <input
               type="password"
-              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+              className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500 text-black"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
