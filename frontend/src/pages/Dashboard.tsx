@@ -44,6 +44,20 @@ const Dashboard: React.FC = () => {
     navigate("/login");
   };
 
+  const handleDelete = async (id: number) => {
+    if (window.confirm("Are you sure you want to delete this asset?")) {
+      try {
+        const token = localStorage.getItem("token");
+        await api.delete(`/assets/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        fetchAssets();
+      } catch (err) {
+        alert("Failed to delete asset");
+      }
+    }
+  };
+
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-8">
@@ -72,6 +86,7 @@ const Dashboard: React.FC = () => {
               <th className="px-5 py-3 border-b">Category</th>
               <th className="px-5 py-3 border-b">Status</th>
               <th className="px-5 py-3 border-b">Location</th>
+              <th className="px-5 py-3 border-b text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -95,6 +110,14 @@ const Dashboard: React.FC = () => {
                   </td>
                   <td className="px-5 py-5 text-sm text-black">
                     {asset.location}
+                  </td>
+                  <td className="px-5 py-5 text-sm text-center">
+                    <button
+                      onClick={() => handleDelete(asset.id)}
+                      className="text-red-600 hover:text-red-900 font-bold"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))

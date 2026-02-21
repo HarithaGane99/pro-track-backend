@@ -157,6 +157,23 @@ def create_maintenance_log(
     return new_log
 
 
+@app.delete("/assets/{asset_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_asset(
+    asset_id: int, 
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    asset_query = db.query(models.Asset).filter(models.Asset.id == asset_id)
+    asset = asset_query.first()
+    
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+        
+    asset_query.delete(synchronize_session=False)
+    db.commit()
+    return None
+
+
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
