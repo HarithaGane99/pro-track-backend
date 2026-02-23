@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 
 interface AddAssetProps {
@@ -6,27 +6,59 @@ interface AddAssetProps {
   onClose: () => void;
 }
 
+interface LookupItem {
+  id: number;
+  name: string;
+}
+
 const AddAssetModal: React.FC<AddAssetProps> = ({ onAssetAdded, onClose }) => {
+  const [categories, setCategories] = useState<LookupItem[]>([]);
+  const [locations, setLocations] = useState<LookupItem[]>([]);
+  
   const [formData, setFormData] = useState({
     name: '',
-    category: '',
-    location: '',
+    category_id: '', 
+    location_id: '',
     purchase_date: new Date().toISOString().split('T')[0],
     status: 'Healthy'
   });
+
+
+  useEffect(() => {
+    const fetchDropdownData = async () => {
+      try {
+        const [catRes, locRes] = await Promise.all([
+          api.get('/categories'),
+          api.get('/locations')
+        ]);
+        setCategories(catRes.data);
+        setLocations(locRes.data);
+      } catch (err) {
+        console.error("Error fetching dropdown data", err);
+      }
+    };
+    fetchDropdownData();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await api.post('/assets', formData, {
+
+      const dataToSend = {
+        ...formData,
+        category_id: parseInt(formData.category_id),
+        location_id: parseInt(formData.location_id)
+      };
+
+      await api.post('/assets', dataToSend, {
         headers: { Authorization: `Bearer ${token}` }
       });
       onAssetAdded(); 
       onClose();     
     } catch (err) {
       console.error("Error adding asset", err);
-      alert("Failed to add asset. Please check your data.");
+      alert("Failed to add asset. Please check if you selected Category and Location.");
     }
   };
 
@@ -38,31 +70,41 @@ const AddAssetModal: React.FC<AddAssetProps> = ({ onAssetAdded, onClose }) => {
           <div className="space-y-4">
             <input
               type="text"
-              text-black
               placeholder="Asset Name"
               className="w-full p-2 border rounded text-black"
+              value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
               required
             />
-            <input
-              type="text"
+            
+            {/* Category Dropdown */}
+            <select
+              className="w-full p-2 border rounded text-black"
+              value={formData.category_id}
+              onChange={(e) => setFormData({...formData, category_id: e.target.value})}
+              required
+            >
+              <option value="">Select Category</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
 
-              placeholder="Category (e.g. Cleaning, Tech)"
+            {/* Location Dropdown */}
+            <select
               className="w-full p-2 border rounded text-black"
-              onChange={(e) => setFormData({...formData, category: e.target.value})}
+              value={formData.location_id}
+              onChange={(e) => setFormData({...formData, location_id: e.target.value})}
               required
-            />
-            <input
-              type="text"
-              
-              placeholder="Location"
-              className="w-full p-2 border rounded text-black"
-              onChange={(e) => setFormData({...formData, location: e.target.value})}
-              required
-            />
+            >
+              <option value="">Select Location</option>
+              {locations.map((loc) => (
+                <option key={loc.id} value={loc.id}>{loc.name}</option>
+              ))}
+            </select>
+
             <input
               type="date"
-              
               className="w-full p-2 border rounded text-black"
               value={formData.purchase_date}
               onChange={(e) => setFormData({...formData, purchase_date: e.target.value})}

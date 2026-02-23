@@ -3,12 +3,18 @@ import api from "../services/api";
 import { useNavigate } from "react-router-dom";
 import AddAssetModal from "../components/AddAssetModal";
 
+
+interface LookupItem {
+  id: number;
+  name: string;
+}
+
 interface Asset {
   id: number;
   name: string;
-  category: string;
+  category: LookupItem; 
+  location: LookupItem; 
   status: string;
-  location: string;
   purchase_date: string;
 }
 
@@ -44,6 +50,20 @@ const Dashboard: React.FC = () => {
     navigate("/login");
   };
 
+
+  const handleStatusChange = async (assetId: number, newStatus: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      await api.put(`/assets/${assetId}/status`, 
+        { status: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchAssets(); 
+    } catch (err) {
+      alert("Failed to update status");
+    }
+  };
+
   const handleDelete = async (id: number) => {
     if (window.confirm("Are you sure you want to delete this asset?")) {
       try {
@@ -61,6 +81,10 @@ const Dashboard: React.FC = () => {
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-8">
+        <nav className="mb-6 space-x-4">
+  <button onClick={() => navigate('/dashboard')} className="text-blue-600 underline">Assets</button>
+  <button onClick={() => navigate('/settings')} className="text-blue-600 underline">Settings</button>
+</nav>
         <h1 className="text-3xl font-bold text-gray-800">Asset Inventory</h1>
         <div className="space-x-4">
           <button
@@ -84,7 +108,7 @@ const Dashboard: React.FC = () => {
             <tr className="bg-blue-600 text-white text-left text-sm uppercase font-semibold">
               <th className="px-5 py-3 border-b">Name</th>
               <th className="px-5 py-3 border-b">Category</th>
-              <th className="px-5 py-3 border-b">Status</th>
+              <th className="px-5 py-3 border-b text-center">Status (Edit)</th>
               <th className="px-5 py-3 border-b">Location</th>
               <th className="px-5 py-3 border-b text-center">Actions</th>
             </tr>
@@ -93,23 +117,28 @@ const Dashboard: React.FC = () => {
             {assets.length > 0 ? (
               assets.map((asset) => (
                 <tr key={asset.id} className="hover:bg-gray-100 border-b">
-                  <td className="px-5 py-5 text-sm text-black">{asset.name}</td>
+                  <td className="px-5 py-5 text-sm text-black font-medium">{asset.name}</td>
                   <td className="px-5 py-5 text-sm text-black">
-                    {asset.category}
+                    {asset.category?.name || "N/A"}
                   </td>
-                  <td className="px-5 py-5 text-sm ">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-bold ${
+                  <td className="px-5 py-5 text-sm text-center">
+                    {/* Status Dropdown එක */}
+                    <select
+                      value={asset.status}
+                      onChange={(e) => handleStatusChange(asset.id, e.target.value)}
+                      className={`p-1 rounded font-bold text-xs outline-none ${
                         asset.status === "Healthy"
                           ? "bg-green-200 text-green-800"
                           : "bg-yellow-200 text-yellow-800"
                       }`}
                     >
-                      {asset.status}
-                    </span>
+                      <option value="Healthy">Healthy</option>
+                      <option value="Under Repair">Under Repair</option>
+                      <option value="Broken">Broken</option>
+                    </select>
                   </td>
                   <td className="px-5 py-5 text-sm text-black">
-                    {asset.location}
+                    {asset.location?.name || "N/A"}
                   </td>
                   <td className="px-5 py-5 text-sm text-center">
                     <button
@@ -123,7 +152,7 @@ const Dashboard: React.FC = () => {
               ))
             ) : (
               <tr>
-                <td colSpan={4} className="px-5 py-5 text-center text-gray-500">
+                <td colSpan={5} className="px-5 py-5 text-center text-gray-500">
                   No assets found.
                 </td>
               </tr>
@@ -133,7 +162,7 @@ const Dashboard: React.FC = () => {
       </div>
       {isModalOpen && (
         <AddAssetModal
-          onAssetAdded={() => fetchAssets()}
+          onAssetAdded={fetchAssets}
           onClose={() => setIsModalOpen(false)}
         />
       )}

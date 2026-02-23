@@ -1,4 +1,7 @@
 import os
+from .database import engine
+from . import models
+
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -13,7 +16,7 @@ from typing import List
 
 load_dotenv()
 
-
+models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -185,3 +188,41 @@ def create_access_token(data: dict):
     return encoded_jwt
 
 
+@app.get("/categories", response_model=List[schemas.CategoryOut])
+def get_categories(db: Session = Depends(database.get_db)):
+    return db.query(models.Category).all()
+
+@app.get("/locations", response_model=List[schemas.LocationOut])
+def get_locations(db: Session = Depends(database.get_db)):
+    return db.query(models.Location).all()
+
+
+
+@app.post("/categories", response_model=schemas.CategoryOut)
+def create_category(cat: schemas.CategoryCreate, db: Session = Depends(database.get_db)):
+    new_cat = models.Category(name=cat.name)
+    db.add(new_cat)
+    db.commit()
+    db.refresh(new_cat)
+    return new_cat
+
+@app.delete("/categories/{id}")
+def delete_category(id: int, db: Session = Depends(database.get_db)):
+    db.query(models.Category).filter(models.Category.id == id).delete()
+    db.commit()
+    return {"message": "Deleted"}
+
+# --- Location Management ---
+@app.post("/locations", response_model=schemas.LocationOut)
+def create_location(loc: schemas.LocationCreate, db: Session = Depends(database.get_db)):
+    new_loc = models.Location(name=loc.name)
+    db.add(new_loc)
+    db.commit()
+    db.refresh(new_loc)
+    return new_loc
+
+@app.delete("/locations/{id}")
+def delete_location(id: int, db: Session = Depends(database.get_db)):
+    db.query(models.Location).filter(models.Location.id == id).delete()
+    db.commit()
+    return {"message": "Deleted"}

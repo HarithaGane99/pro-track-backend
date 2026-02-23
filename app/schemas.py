@@ -2,6 +2,30 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import date
 
+# Category Schemas
+class CategoryBase(BaseModel):
+    name: str
+
+class CategoryCreate(CategoryBase):
+    pass
+
+class CategoryOut(CategoryBase):
+    id: int
+    class Config:
+        from_attributes = True 
+
+# Location Schemas
+class LocationBase(BaseModel):
+    name: str
+
+class LocationCreate(LocationBase):
+    pass
+
+class LocationOut(LocationBase):
+    id: int
+    class Config:
+        from_attributes = True
+
 class UserCreate(BaseModel):
     username: str
     password: str
@@ -18,16 +42,18 @@ class UserOut(BaseModel):
 
 class AssetBase(BaseModel):
     name: str
-    category: str
-    purchase_date: Optional[date] = None
+    category_id: int
+    location_id: int
     status: str = "Healthy"
-    location: str
+    purchase_date: date
 
 class AssetCreate(AssetBase):
     pass
 
 class AssetOut(AssetBase):
     id: int
+    category: CategoryOut 
+    location: LocationOut 
     class Config:
         from_attributes = True
         
@@ -49,3 +75,5 @@ class MaintenanceLogOut(MaintenanceLogBase):
 
 class AssetStatusUpdate(BaseModel):
     status: str 
+
+
